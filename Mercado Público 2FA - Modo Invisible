@@ -1,0 +1,84 @@
+// ==UserScript==
+// @name         Mercado Público 2FA - Modo Invisible (Alfanumérico)
+// @namespace    http://tampermonkey.net/
+// @version      3.2
+// @description  Soporta códigos alfanuméricos como JEQ7W2
+// @author       Bulla13
+// @match        https://accounts.claveunica.gob.cl/*
+// @grant        GM_xmlhttpRequest
+// ==/UserScript==
+
+
+//==================== INFO ==================== 
+// Este Script se conecta a tu Gmail mediante un Google Appscript, lee tu bandeja de entrada buscando el código 2FA y lo rellena en la web de forma autómatica.
+// Suele tardar entre 5-10s la conexión e ingreso de código según mi experiencia de uso durante aproximadamente 5 meses.
+//==================== ---- ==================== 
+
+(function() {
+    'use strict';
+
+    const API_URL_GAS = '';
+    let ejecutado = false;
+
+    async function obtenerCodigoYCompletar() {
+        if (ejecutado) return;
+
+        const inputCode = document.querySelector('#code');
+        const btnContinuar = document.querySelector('#submitButton');
+
+        if (!inputCode) return;
+
+        console.log("Consultando Gmail por código alfanumérico...");
+
+        GM_xmlhttpRequest({
+            method: "GET",
+            url: API_URL_GAS,
+            anonymous: true,
+            onload: function(response) {
+                try {
+                    const res = JSON.parse(response.responseText);
+
+                    if (res.code) {
+                        ejecutado = true;
+                        console.log("Código encontrado: " + res.code);
+
+                        // Llenado forzado
+                        inputCode.value = res.code;
+
+                        // Disparar todos los eventos posibles para que la web lo valide
+                        const eventos = ['input', 'change', 'keydown', 'keyup', 'blur'];
+                        eventos.forEach(evt => {
+                            inputCode.dispatchEvent(new Event(evt, { bubbles: true }));
+                        });
+
+                        // Pequeña espera y click
+                        setTimeout(() => {
+                            if (btnContinuar) {
+                                console.log("Enviando formulario...");
+                                btnContinuar.click();
+                            }
+                        }, 800);
+                    } else {
+                        console.log("Aún buscando: " + (res.error || "Esperando correo..."));
+                    }
+                } catch (e) {
+                    console.error("Error en respuesta:", e);
+                }
+            }
+        });
+    }
+
+    function iniciar() {
+        if (document.querySelector('#code') && !ejecutado) {
+            if (!window.miIntervalo2FA) {
+                obtenerCodigoYCompletar();
+                window.miIntervalo2FA = setInterval(obtenerCodigoYCompletar, 5000);
+            }
+        }
+    }
+
+    const observer = new MutationObserver(iniciar);
+    observer.observe(document.body, { childList: true, subtree: true });
+    iniciar();
+
+})();
