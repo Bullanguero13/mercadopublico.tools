@@ -3,7 +3,7 @@
 // @namespace    http://tampermonkey.net/
 // @version      3.2
 // @description  Corrige el problema de cálculo de totales en SC mediante inyección secuencial.
-// @author       Asistente de Programación
+// @author       Bulla13
 // @match        *://*.mercadopublico.cl/*
 // @grant        GM_getValue
 // @grant        GM_setValue
